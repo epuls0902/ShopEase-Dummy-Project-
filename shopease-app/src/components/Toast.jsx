@@ -1,47 +1,57 @@
-// src/components/Toast.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 const Toast = ({ message, type, onClose }) => {
+    const onCloseRef = useRef(onClose);
+    
     useEffect(() => {
-        const timer = setTimeout(() => onClose(), 5000); // Ubah menjadi 5 detik
-        return () => clearTimeout(timer);
+        onCloseRef.current = onClose;
     }, [onClose]);
 
-    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onCloseRef.current();
+        }, 5000); 
+        return () => clearTimeout(timer);
+    }, []);
+
+    const getBgColor = () => {
+        switch (type) {
+            case 'success': return 'bg-green-500';
+            case 'info': return 'bg-blue-500';
+            case 'error':
+            default: return 'bg-red-500';
+        }
+    };
+
+    const getIcon = () => {
+        switch (type) {
+            case 'success': return 'fa-check-circle';
+            case 'info': return 'fa-info-circle';
+            case 'error':
+            default: return 'fa-exclamation-circle';
+        }
+    };
+
+    const bgColor = getBgColor();
     
     return (
         <div 
-            className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-500 ease-in-out`}
+            className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-[100] transform transition-all duration-500 ease-in-out flex items-center gap-3 min-w-[300px]`}
             style={{
-                animation: 'slideIn 0.3s ease-out forwards, slideOut 0.3s ease-in 1.5s forwards'
+                animation: 'slideIn 0.3s ease-out forwards'
             }}
         >
-            <div className="flex items-center">
-                <i className={`fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2`}></i>
-                <span>{message}</span>
-            </div>
+            <i className={`fas ${getIcon()} text-xl`}></i>
+            <span className="font-medium">{message}</span>
             
-            <style jsx>{`
+            <style>{`
                 @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
                 }
-                
                 @keyframes slideOut {
-                    from {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                    to {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
                 }
             `}</style>
         </div>

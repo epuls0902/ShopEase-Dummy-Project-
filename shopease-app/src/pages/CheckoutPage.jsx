@@ -1,193 +1,290 @@
-// src/components/CheckoutPage.jsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import Toast from '../components/Toast';
 
 const CheckoutPage = () => {
     const { cartItems, getTotalPrice, clearCart } = useCart();
-    const [formData, setFormData] = useState({
-        fullName: '',
-        email: '',
-        address: ''
-    });
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [orderComplete, setOrderComplete] = useState(false);
-    const [toast, setToast] = useState(null);
     const navigate = useNavigate();
+    const [toast, setToast] = useState(null);
 
+    // --- STATE FORM DATA ---
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: ''
+    });
+
+    const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    const totalPrice = getTotalPrice();
+
+    // --- HANDLER INPUT ---
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prevData => ({
-            ...prevData,
+        setFormData({
+            ...formData,
             [name]: value
-        }));
+        });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        
-        if (cartItems.length === 0) {
-            setToast({ message: 'Keranjang belanja kosong', type: 'error' });
-            return;
+    // --- LOGIKA CHECKOUT + VALIDASI ---
+    const handleCheckout = (e) => {
+        if (e) e.preventDefault(); // Cegah perilaku default browser
+
+        // 1. Validasi Form
+        if (!formData.firstName || !formData.lastName || !formData.address || !formData.city || !formData.state || !formData.country) {
+            showToast('Please fill in your shipping details to proceed.', 'error');
+            return; 
         }
 
-        setIsProcessing(true);
+        // 2. Generate Link WhatsApp
+        const phoneNumber = "628123456789"; 
+
+        let cartMessage = "";
+        cartItems.forEach((item, index) => {
+            const subtotal = item.price * item.quantity;
+            cartMessage += `${index + 1}. ${item.title}\n`;
+            cartMessage += `   Price: $${item.price} x ${item.quantity} = $${subtotal.toFixed(2)}\n\n`;
+        });
+
+        // 3. Format Pesan Shipping
+        const shippingDetails = `--- Shipping Details ---\nName: ${formData.firstName} ${formData.lastName}\nEmail: ${formData.email}\nAddress: ${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}\nCountry: ${formData.country}`;
+
+        // 4. Gabungkan Pesan
+        const fullMessage = `Hello ShopEase, I want to order:\n\n${cartMessage}\n\n${shippingDetails}\n\nTotal Bill: $${totalPrice.toFixed(2)}`;
+
+        // 5. Encode & Buka WA
+        const waLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(fullMessage)}`;
         
-        // Simulate API call
+        // Membuka WA di tab baru
+        window.open(waLink, '_blank');
+
+        // 6. Tampilkan Notifikasi Sukses
+        showToast('Purchase successful! Your order is being processed by admin', 'success');
+        
+        // 7. Kosongkan keranjang
+        clearCart();
+
+        // 8. Redirect ke Home setelah 3 detik
         setTimeout(() => {
-            setIsProcessing(false);
-            
-            // Format pesan untuk WhatsApp
-            let orderDetails = cartItems.map(item => 
-                `- ${item.title} (${item.quantity} x $${item.price}) = $${(item.price * item.quantity).toFixed(2)}`
-            ).join('\n');
-            
-            const message = `Halo ka, saya ${formData.fullName} dengan email ${formData.email} ingin memesan item berikut:\n\n${orderDetails}\n\nTotal: $${getTotalPrice().toFixed(2)}\n\nTolong dikirim ke alamat ini:\n${formData.address}`;
-            
-            // Nomor WhatsApp (ganti dengan nomor toko Anda)
-            const phoneNumber = "6282123456789"; // Format internasional tanpa tanda + atau 0 di depan
-            
-            // Buka WhatsApp dengan pesan yang sudah diformat
-            window.open(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`, '_blank');
-            
-            // Tampilkan pesan sukses
-            setToast({ message: 'Anda diarahkan ke WhatsApp untuk menyelesaikan pesanan', type: 'success' });
-            
-            // Kosongkan keranjang
-            clearCart();
-            
-            // Tandai pesanan selesai
-            setOrderComplete(true);
-            
-            // Redirect ke home setelah 5 detik
-            setTimeout(() => {
-                navigate('/');
-            }, 5000);
-        }, 2000);
+            navigate('/');
+        }, 3000);
     };
 
-    if (orderComplete) {
-        return (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-md mx-auto">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i className="fab fa-whatsapp text-green-500 text-3xl"></i>
-                </div>
-                <h1 className="text-2xl font-bold mb-2">Pesanan Dikirim ke WhatsApp!</h1>
-                <p className="text-gray-600 mb-4">Terima kasih telah berbelanja di ShopEase</p>
-                <p className="text-sm text-gray-500">Anda akan diarahkan kembali ke beranda dalam 5 detik...</p>
-                <button 
-                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-                    onClick={() => navigate('/')}
-                >
-                    Kembali ke Beranda
-                </button>
-            </div>
-        );
-    }
-
     return (
-        <div>
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
-            <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-xl font-semibold mb-4">Informasi Pengiriman</h2>
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 mb-2">Nama Lengkap</label>
-                                <input 
-                                    type="text" 
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            
-                            <div className="mb-4">
-                                <label className="block text-gray-700 mb-2">Email</label>
-                                <input 
-                                    type="email" 
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            
-                            <div className="mb-6">
-                                <label className="block text-gray-700 mb-2">Alamat</label>
-                                <textarea 
-                                    name="address"
-                                    value={formData.address}
-                                    onChange={handleChange}
-                                    rows="3"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                    required
-                                ></textarea>
-                            </div>
-                            
-                            <button 
-                                type="submit"
-                                className="bg-green-600 text-white px-6 py-3 rounded-lg w-full font-medium hover:bg-green-700 transition"
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2 inline-block"></div>
-                                        Memproses...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fab fa-whatsapp mr-2"></i>
-                                        Kirim Pesanan via WhatsApp
-                                    </>
-                                )}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-xl font-semibold mb-4">Ringkasan Pesanan</h2>
-                        <div className="mb-4">
-                            {cartItems.map(item => (
-                                <div key={item.id} className="flex items-center mb-3">
-                                    <img src={item.thumbnail} alt={item.title} className="w-12 h-12 object-cover rounded mr-3" />
-                                    <div className="flex-grow">
-                                        <h4 className="font-medium text-sm truncate">{item.title}</h4>
-                                        <p className="text-sm text-gray-500">{item.quantity} x ${item.price}</p>
-                                    </div>
-                                    <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="border-t pt-4 mt-4">
-                            <div className="flex justify-between mb-2">
-                                <span>Subtotal</span>
-                                <span>${getTotalPrice().toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between mb-2">
-                                <span>Biaya Pengiriman</span>
-                                <span>Gratis</span>
-                            </div>
-                            <div className="flex justify-between font-semibold text-lg mt-2 pt-2 border-t">
-                                <span>Total</span>
-                                <span>${getTotalPrice().toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                            <p className="text-sm text-green-700">
-                                <i className="fas fa-info-circle mr-1"></i>
-                                Pesanan Anda akan dikirim melalui WhatsApp untuk proses lebih lanjut
+        // ROOT CONTAINER
+        <div 
+            className="min-h-screen flex flex-col relative"
+            style={{
+                backgroundImage: `url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+            }}
+        >
+            <div className="absolute inset-0 bg-blue-50/50"></div>
+
+            <div className="relative z-10 flex-1 flex flex-col">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+                    
+                    {/* TOAST */}
+                    {toast && <Toast key={toast.message} message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+                    <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/50 mb-8">
+                        
+                        <div className="text-center mb-10">
+                            <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight drop-shadow-lg">
+                                Checkout
+                            </h1>
+                            <p className="text-slate-700 max-w-2xl mx-auto text-lg drop-shadow-sm">
+                                Complete your shipping details below to finalize your order.
                             </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                            
+                            {/* --- LEFT COLUMN: SHIPPING FORM --- */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                                    <i className="fas fa-shipping-fast text-blue-600"></i> Shipping Details
+                                </h2>
+
+                                {/* 
+                                    PERUBAHAN PENTING: 
+                                    Tag <form> diganti dengan <div>.
+                                    Ditambahkan onKeyDown agar tombol Enter tetap bisa checkout.
+                                */}
+                                <div className="space-y-4" onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault(); // Mencegah Enter default browser
+                                        handleCheckout();
+                                    }
+                                }}>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+                                            <input 
+                                                type="text" 
+                                                name="firstName"
+                                                value={formData.firstName}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="John" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+                                            <input 
+                                                type="text" 
+                                                name="lastName"
+                                                value={formData.lastName}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="Doe" 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="email" 
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 pl-11 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="john@example.com" 
+                                            />
+                                            <i className="fas fa-envelope absolute left-4 top-4 text-slate-400"></i>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Street Address</label>
+                                        <input 
+                                            type="text" 
+                                            name="address"
+                                            value={formData.address}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                            placeholder="1234 Main St" 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                                            <input 
+                                                type="text" 
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="New York" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                                            <input 
+                                                type="text" 
+                                                name="state"
+                                                value={formData.state}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="NY" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">ZIP Code</label>
+                                            <input 
+                                                type="text" 
+                                                name="zip"
+                                                value={formData.zip}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition" 
+                                                placeholder="10001" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
+                                            <select
+                                                name="country"
+                                                value={formData.country}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 bg-white/50 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition cursor-pointer"
+                                            >
+                                                <option value="" disabled>Select Country</option>
+                                                <option value="Indonesia">Indonesia</option>
+                                                <option value="United States">United States</option>
+                                                <option value="Canada">Canada</option>
+                                                <option value="United Kingdom">United Kingdom</option>
+                                                <option value="Malaysia">Malaysia</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div> {/* End Form Div */}
+                            </div>
+                            
+                            {/* --- RIGHT COLUMN: ORDER SUMMARY --- */}
+                            <div className="lg:col-span-1">
+                                <div className="bg-white/50 backdrop-blur-sm rounded-3xl shadow-lg border border-white/40 p-6 sticky top-8">
+                                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Order Summary</h2>
+                                    
+                                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+                                        {cartItems.map(item => (
+                                            <div key={item.id} className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={item.thumbnail} alt={item.title} className="w-12 h-12 rounded-lg object-cover bg-white" />
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-slate-800 line-clamp-1 w-24">{item.title}</p>
+                                                        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                                                    </div>
+                                                </div>
+                                                <span className="font-bold text-slate-900 text-sm">
+                                                    ${(item.price * item.quantity).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="border-t border-slate-200 pt-4 space-y-3 mb-6">
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Total Items ({totalItems})</span>
+                                            <span className="font-bold text-lg">${totalPrice.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Shipping</span>
+                                            <span className="text-green-600 font-bold">Free</span>
+                                        </div>
+                                        <div className="flex justify-between text-xl font-bold text-slate-900 pt-2 border-t border-slate-100">
+                                            <span>Total</span>
+                                            <span>${totalPrice.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* --- BUTTON CHECKOUT WA --- */}
+                                    <button 
+                                        onClick={handleCheckout}
+                                        className="group w-full bg-green-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
+                                    >
+                                        <i className="fab fa-whatsapp"></i> 
+                                        Checkout via WhatsApp
+                                        <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                                    </button>
+                                    
+                                    <div className="flex justify-center gap-4 mt-6">
+                                        <div className="w-10 h-6 bg-slate-200 rounded"></div>
+                                        <div className="w-10 h-6 bg-slate-200 rounded"></div>
+                                        <div className="w-10 h-6 bg-green-500 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
