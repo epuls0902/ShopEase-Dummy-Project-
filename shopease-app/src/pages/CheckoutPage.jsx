@@ -46,7 +46,7 @@ const CheckoutPage = () => {
             const message = `Halo ka, saya ${formData.fullName} dengan email ${formData.email} ingin memesan item berikut:\n\n${orderDetails}\n\nTotal: $${getTotalPrice().toFixed(2)}\n\nTolong dikirim ke alamat ini:\n${formData.address}`;
             
             // Nomor WhatsApp (ganti dengan nomor toko Anda)
-            const phoneNumber = "6282145732973"; // Format internasional tanpa tanda + atau 0 di depan
+            const phoneNumber = "6282123456789"; // Format internasional tanpa tanda + atau 0 di depan
             
             // Buka WhatsApp dengan pesan yang sudah diformat
             window.open(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`, '_blank');
