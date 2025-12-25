@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import Toast from '../components/Toast';
 
@@ -34,11 +34,22 @@ const CheckoutPage = () => {
 
     // --- LOGIKA CHECKOUT + VALIDASI ---
     const handleCheckout = (e) => {
-        if (e) e.preventDefault(); // Cegah perilaku default browser
+        if (e) e.preventDefault();
 
-        // 1. Validasi Form
-        if (!formData.firstName || !formData.lastName || !formData.address || !formData.city || !formData.state || !formData.country) {
-            showToast('Please fill in your shipping details to proceed.', 'error');
+        // 1. Validasi Form (Menampilkan Toast Error dalam Bahasa Inggris)
+        if (
+            !formData.firstName.trim() || 
+            !formData.lastName.trim() || 
+            !formData.address.trim() || 
+            !formData.city.trim() || 
+            !formData.state.trim() || 
+            !formData.zip.trim() || 
+            !formData.country
+        ) {
+            setToast({
+                message: 'Please fill in all required fields to proceed.',
+                type: 'error'
+            });
             return; 
         }
 
@@ -64,8 +75,11 @@ const CheckoutPage = () => {
         // Membuka WA di tab baru
         window.open(waLink, '_blank');
 
-        // 6. Tampilkan Notifikasi Sukses
-        showToast('Purchase successful! Your order is being processed by admin', 'success');
+        // 6. Tampilkan Notifikasi Sukses (Dipastikan muncul dengan timestamp di key)
+        setToast({
+            message: 'Purchase successful! Your order is being processed by admin',
+            type: 'success'
+        });
         
         // 7. Kosongkan keranjang
         clearCart();
@@ -75,6 +89,32 @@ const CheckoutPage = () => {
             navigate('/');
         }, 3000);
     };
+
+    // Jika cart kosong dan TIDAK ada toast (setelah redirect/awal), tampilkan pesan kosong
+    if (cartItems.length === 0 && !toast) {
+        return (
+            <div 
+                className="min-h-screen flex items-center justify-center relative"
+                style={{
+                    backgroundImage: `url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            >
+                <div className="absolute inset-0 bg-blue-50/50"></div>
+                <div className="relative z-10 bg-white/90 p-10 rounded-2xl shadow-xl text-center">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
+                    <p className="text-gray-600 mb-6">Looks like you haven't added any items yet.</p>
+                    <button 
+                        onClick={() => navigate('/')}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold"
+                    >
+                        Start Shopping
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         // ROOT CONTAINER
@@ -92,8 +132,15 @@ const CheckoutPage = () => {
             <div className="relative z-10 flex-1 flex flex-col">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
                     
-                    {/* TOAST */}
-                    {toast && <Toast key={toast.message} message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                    {/* TOAST dengan Key Unik agar selalu render ulang saat baru */}
+                    {toast && (
+                        <Toast 
+                            key={`${toast.message}-${toast.type}-${Date.now()}`} 
+                            message={toast.message} 
+                            type={toast.type} 
+                            onClose={() => setToast(null)} 
+                        />
+                    )}
 
                     <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/50 mb-8">
                         
@@ -114,17 +161,15 @@ const CheckoutPage = () => {
                                     <i className="fas fa-shipping-fast text-blue-600"></i> Shipping Details
                                 </h2>
 
-                                {/* 
-                                    PERUBAHAN PENTING: 
-                                    Tag <form> diganti dengan <div>.
-                                    Ditambahkan onKeyDown agar tombol Enter tetap bisa checkout.
-                                */}
-                                <div className="space-y-4" onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault(); // Mencegah Enter default browser
-                                        handleCheckout();
-                                    }
-                                }}>
+                                <div 
+                                    className="space-y-4" 
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleCheckout();
+                                        }
+                                    }}
+                                >
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>

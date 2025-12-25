@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom'; // 1. Import createPortal
 
 const Toast = ({ message, type, onClose }) => {
     const onCloseRef = useRef(onClose);
@@ -10,7 +11,7 @@ const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onCloseRef.current();
-        }, 5000); 
+        }, 1500); 
         return () => clearTimeout(timer);
     }, []);
 
@@ -34,11 +35,12 @@ const Toast = ({ message, type, onClose }) => {
 
     const bgColor = getBgColor();
     
-    return (
+    // 2. Bungkus return JSX dengan createPortal(..., document.body)
+    return createPortal(
         <div 
-            className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-[100] transform transition-all duration-500 ease-in-out flex items-center gap-3 min-w-[300px]`}
+            className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-2xl z-[9999] transform transition-all duration-500 ease-in-out flex items-center gap-3 min-w-[300px]`}
             style={{
-                animation: 'slideIn 0.3s ease-out forwards'
+                animation: 'slideIn 0.5s ease-out forwards'
             }}
         >
             <i className={`fas ${getIcon()} text-xl`}></i>
@@ -54,7 +56,8 @@ const Toast = ({ message, type, onClose }) => {
                     to { transform: translateX(100%); opacity: 0; }
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 };
 

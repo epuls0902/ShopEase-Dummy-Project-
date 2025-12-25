@@ -21,7 +21,7 @@ const ProductCard = ({ product, showToast }) => {
         
         setIsAdding(true);
         addToCart(product);
-        showToast('Item added to cart successfully', 'success'); // PESAN BAHASA INGGRIS
+        showToast('Item added to cart successfully', 'success');
         setLastAddedTime({ ...lastAddedTime, [product.id]: currentTime });
         
         setTimeout(() => setIsAdding(false), 2000); 
@@ -38,28 +38,32 @@ const ProductCard = ({ product, showToast }) => {
         <>
             {/* CARD UI */}
             <div 
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col h-full group"
+                // HAPUS 'bg-white' DI SINI, agar background halaman dasar terlihat
+                className="rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col h-full group"
                 onClick={handleCardClick}
             >
-                <div className="h-48 overflow-hidden relative">
+                <div className="h-48 overflow-hidden relative bg-white/50">
                     <img 
                         src={product.thumbnail} 
                         alt={product.title} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                 </div>
-                <div className="p-4 flex-1 flex flex-col">
+                
+                {/* Menambahkan background semi-transparan (glassmorphism) pada area teks agar tetap terbaca di atas background halaman */}
+                <div className="p-4 flex-1 flex flex-col bg-white/80 backdrop-blur-sm">
                     <h3 className="font-semibold text-lg mb-2 text-gray-800 leading-tight line-clamp-1">{product.title}</h3>
                     <p className="text-gray-500 mb-3 text-sm line-clamp-2 flex-1">{product.description}</p>
                     
                     <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-50">
                         <span className="text-xl font-bold text-blue-600">${product.price}</span>
                         
+                        {/* TOMBOL ADD DI CARD */}
                         <button 
                             className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all duration-300 transform active:scale-95 select-none
                                 ${isCooldownActive 
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 shadow-md'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 shadow-md cursor-pointer'
                                 }`}
                             onClick={handleAddToCart}
                             disabled={isCooldownActive}
@@ -74,7 +78,7 @@ const ProductCard = ({ product, showToast }) => {
                 </div>
             </div>
 
-            {/* MODAL POP-UP (z-40 agar Toast di atasnya) */}
+            {/* MODAL POP-UP */}
             {isModalOpen && (
                 <div 
                     className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in"
@@ -127,13 +131,15 @@ const ProductCard = ({ product, showToast }) => {
                                     <span className="text-sm text-gray-500 mb-1">Price</span>
                                     <span className="text-3xl font-extrabold text-blue-600">${product.price}</span>
                                 </div>
+
+                                {/* TOMBOL ADD DI MODAL */}
                                 <button 
                                     onClick={handleAddToCart}
                                     disabled={isCooldownActive}
                                     className={`px-6 py-3 rounded-xl font-bold text-lg flex items-center gap-2 shadow-lg transition-all duration-300 select-none transform active:scale-95
                                         ${isCooldownActive 
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1 cursor-pointer'
                                         }`}
                                 >
                                     {isCooldownActive ? (

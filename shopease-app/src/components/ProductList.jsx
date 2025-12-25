@@ -12,14 +12,17 @@ const ProductList = () => {
     const [toast, setToast] = useState(null);
     
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 12;
+    const itemsPerPage = 8;
 
     useEffect(() => {
         fetchProducts();
     }, []);
 
+    // Reset ke halaman 1 saat search atau category berubah
     useEffect(() => {
         setCurrentPage(1);
+        // Scroll ke atas hanya saat berubah filter, UX biasanya lebih baik jika ke atas saat ganti kategori
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [searchTerm, selectedCategory]);
 
     const fetchProducts = async () => {
@@ -52,11 +55,17 @@ const ProductList = () => {
         setToast({ message, type });
     };
 
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+        // PERUBAHAN: Menghapus window.scrollTo agar tidak scroll ke atas saat ganti halaman
+        // window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const bgImage = "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop";
 
     return (
         <div 
-            className="min-h-screen flex flex-col relative"
+            className="h-auto w-full flex flex-col relative overflow-x-hidden"
             style={{
                 backgroundImage: `url('${bgImage}')`,
                 backgroundSize: 'cover',
@@ -71,8 +80,7 @@ const ProductList = () => {
             <div className="relative z-10 flex-1 flex flex-col">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
                     
-                    {/* --- PERHATIKAN PENEMPATAN TOAST DISINI --- */}
-                    {/* Toast diletakkan di luar main container agar tidak tertutup/terpotong */}
+                    {/* TOAST */}
                     {toast && <Toast key={toast.message} message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                     
                     {/* HEADER SECTION */}
@@ -85,7 +93,7 @@ const ProductList = () => {
                         </p>
                     </div>
                     
-                    {/* --- UI FILTER & SEARCH --- */}
+                    {/* UI FILTER & SEARCH */}
                     <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/50 mb-12">
                         <div className="flex flex-col md:flex-row gap-4 items-center">
                             <div className="relative flex-1 w-full group">
@@ -138,7 +146,12 @@ const ProductList = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
+                            {/* 
+                                KUNCI PERBAIKAN ERROR: 
+                                key={currentPage} dipertahankan agar React me-render ulang grid 
+                                dan mencegah error layout saat ganti halaman tanpa scroll.
+                            */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12" key={currentPage}>
                                 {currentItems.map(product => (
                                     <ProductCard key={product.id} product={product} showToast={showToast} />
                                 ))}
@@ -149,7 +162,7 @@ const ProductList = () => {
                                 <div className="flex flex-col items-center gap-4 pb-8">
                                     <div className="flex gap-2 overflow-x-auto pb-2 w-full justify-center">
                                         <button
-                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                                             disabled={currentPage === 1}
                                             className={`px-6 py-3 border rounded-xl transition-all font-bold ${
                                                 currentPage === 1 
@@ -164,7 +177,7 @@ const ProductList = () => {
                                             return (
                                                 <button
                                                     key={pageNum}
-                                                    onClick={() => setCurrentPage(pageNum)}
+                                                    onClick={() => handlePageChange(pageNum)}
                                                     className={`w-12 h-12 rounded-xl transition-all flex items-center justify-center font-bold whitespace-nowrap ${
                                                         currentPage === pageNum
                                                         ? 'bg-blue-600 text-white shadow-xl scale-110'
@@ -176,7 +189,7 @@ const ProductList = () => {
                                             );
                                         })}
                                         <button
-                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                            onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                                             disabled={currentPage === totalPages}
                                             className={`px-6 py-3 border rounded-xl transition-all font-bold ${
                                                 currentPage === totalPages 

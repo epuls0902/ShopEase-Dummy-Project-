@@ -1,9 +1,18 @@
-// src/contexts/CartContext.jsx
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
-// Inisialisasi state awal
-const initialState = {
-    cartItems: [],
+// 1. PERBAIKAN: Fungsi untuk mengambil data awal dari localStorage
+// Ini memastikan cart tidak hilang saat user refresh halaman
+const getInitialState = () => {
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+        try {
+            return { cartItems: JSON.parse(savedCart) };
+        } catch (error) {
+            console.error('Gagal membaca cart dari localStorage:', error);
+            return { cartItems: [] };
+        }
+    }
+    return { cartItems: [] };
 };
 
 // Definisikan tipe aksi
@@ -53,6 +62,7 @@ const cartReducer = (state, action) => {
             };
             
         case CLEAR_CART:
+            // Reset cart menjadi kosong
             return {
                 ...state,
                 cartItems: [],
@@ -68,9 +78,11 @@ const CartContext = createContext();
 
 // Komponen Provider
 export const CartProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(cartReducer, initialState);
+    // 2. PERBAIKAN: Gunakan getInitialState di sini (argumen ke-3 useReducer)
+    const [state, dispatch] = useReducer(cartReducer, getInitialState());
 
     // Simpan cartItems ke localStorage setiap kali ada perubahan
+    // Ini menjamin perubahan tersimpan (tambah, hapus, update, clear)
     useEffect(() => {
         localStorage.setItem('cartItems', JSON.stringify(state.cartItems));
     }, [state.cartItems]);
@@ -80,7 +92,7 @@ export const CartProvider = ({ children }) => {
         dispatch({ type: ADD_TO_CART, payload: product });
     };
 
-    // Fungsi untuk menghapus produk dari keranjang
+    // Fungsi untuk menghapus produk dari keranjang (per item)
     const removeFromCart = (productId) => {
         dispatch({ type: REMOVE_FROM_CART, payload: productId });
     };
@@ -95,6 +107,7 @@ export const CartProvider = ({ children }) => {
     };
 
     // Fungsi untuk mengosongkan keranjang
+    // Fungsi ini HANYA akan dipanggil di CheckoutPage saat sukses
     const clearCart = () => {
         dispatch({ type: CLEAR_CART });
     };
